@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { Card, Button, Field, Input, Textarea, Badge } from '../ui'
 import { dateStr } from '../../lib/format'
+import { notifyEmail } from '../../lib/notifyEmail'
 
 const CHOICES = ['yes', 'no', 'abstain']
 
@@ -38,9 +39,10 @@ export default function VotingTab({ propertyId }) {
     const { error } = await supabase.from('votes').insert({ property_id: propertyId, title: form.title, description: form.description, created_by: userId || null })
     if (error) {
       const missing = /votes/i.test(error.message) && /(does not exist|schema cache|find the table)/i.test(error.message)
-      alert('Could not raise vote: ' + error.message + (missing ? '\n\nThe voting tables aren\'t set up yet — run supabase/migration-11-voting.sql in the Supabase SQL Editor.' : ''))
+      alert('Could not raise vote: ' + error.message + (missing ? '\n\nThe voting tables aren\'t set up yet — run supabase/setup-all.sql in the Supabase SQL Editor.' : ''))
       return
     }
+    notifyEmail({ kind: 'vote_raised', title: form.title, description: form.description, propertyId })
     setForm({ title: '', description: '' }); setAdding(false); load()
   }
 
@@ -75,7 +77,9 @@ export default function VotingTab({ propertyId }) {
     const t = tally(vote.id)
     const result = outcome(t)
     if (!confirm(`Close this vote and record the result as "${result}" (Yes ${t.yes} / No ${t.no} / Abstain ${t.abstain})?`)) return
-    await supabase.from('votes').update({ status: 'closed', result }).eq('id', vote.id); load()
+    await supabase.from('votes').update({ status: 'closed', result }).eq('id', vote.id)
+    notifyEmail({ kind: 'vote_result', title: vote.title, result, propertyId })
+    load()
   }
 
   async function reopenVote(vote) {

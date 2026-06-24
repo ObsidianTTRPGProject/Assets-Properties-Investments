@@ -102,11 +102,18 @@ export default function BillsTab({ propertyId }) {
         issue_date: form.issue_date || null, due_date: form.due_date || null,
         paid_date: form.status === 'paid' ? new Date().toISOString().slice(0, 10) : null,
       }
+      let error
       if (editingId) {
         if (document_path) base.document_path = document_path
-        await supabase.from('bills').update(base).eq('id', editingId)
+        ;({ error } = await supabase.from('bills').update(base).eq('id', editingId))
       } else {
-        await supabase.from('bills').insert({ ...base, document_path: document_path || null })
+        ;({ error } = await supabase.from('bills').insert({ ...base, document_path: document_path || null }))
+      }
+      if (error) {
+        const missing = /(reference|invoice_number)/.test(error.message) && /(schema cache|column)/i.test(error.message)
+        alert('Could not save bill: ' + error.message + (missing ? '\n\nYour database is missing newer columns — run supabase/setup-all.sql in the Supabase SQL Editor.' : ''))
+        setBusy(false)
+        return
       }
       setForm(blank()); setFile(null); setEditingId(null); setShowForm(false); await load()
     } catch (err) { alert('Failed: ' + err.message) }

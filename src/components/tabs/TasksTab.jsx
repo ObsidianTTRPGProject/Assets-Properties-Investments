@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { uploadFile } from '../../lib/storage'
 import { Card, Button, Field, Input, Select, Textarea, Badge } from '../ui'
 import { dateStr } from '../../lib/format'
+import { notifyEmail } from '../../lib/notifyEmail'
 
 const STATUSES = ['open', 'in progress', 'blocked', 'resolved', 'closed']
 const TYPES = ['build issue', 'maintenance', 'inspection', 'other']
@@ -51,6 +52,10 @@ export default function TasksTab({ propertyId }) {
     }
     if (editingId) await supabase.from('tasks').update(payload).eq('id', editingId)
     else await supabase.from('tasks').insert(payload)
+    if (form.assigned_user_id) {
+      const u = users.find((x) => x.id === form.assigned_user_id)
+      if (u?.email) notifyEmail({ kind: 'task_assigned', title: form.title, toEmail: u.email, propertyId })
+    }
     setForm(blank()); setEditingId(null); setShowForm(false); load()
   }
 

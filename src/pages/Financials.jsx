@@ -65,7 +65,7 @@ export default function Financials() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Total income" value={money(totalIn)} color="text-green-600" />
         <Stat label="Total expenses" value={money(totalOut)} color="text-red-600" />
         <Stat label="Net position" value={money(totalIn - totalOut)} color={totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-600'} />
@@ -119,8 +119,8 @@ export default function Financials() {
             </Card>
           </div>
 
-          <Card className="mt-6 overflow-hidden">
-            <table className="w-full text-sm">
+          <Card className="mt-6 overflow-x-auto">
+            <table className="w-full min-w-[480px] text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr><th className="px-4 py-2">Year</th><th className="px-4 py-2 text-right">Income</th><th className="px-4 py-2 text-right">Expenses</th><th className="px-4 py-2 text-right">Net</th></tr>
               </thead>

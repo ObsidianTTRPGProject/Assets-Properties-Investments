@@ -120,8 +120,8 @@ export default function BillsTab({ propertyId }) {
       {bills.length === 0 ? (
         <p className="text-slate-400">No bills yet.</p>
       ) : (
-        <Card className="overflow-hidden">
-          <table className="w-full text-sm">
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-2">Description</th>

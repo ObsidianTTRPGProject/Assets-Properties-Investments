@@ -108,7 +108,7 @@ export default function Pool() {
       <h1 className="mb-1 text-2xl font-semibold">Shared Pool</h1>
       <p className="mb-5 text-sm text-slate-500">Money the team pays in, and what the pool is spent on.</p>
 
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Paid in" value={money(totalIn)} color="text-green-600" />
         <Stat label="Spent" value={money(totalOut)} color="text-red-600" />
         <Stat label="Pool balance" value={money(balance)} color={balance >= 0 ? 'text-brand-700' : 'text-red-600'} />

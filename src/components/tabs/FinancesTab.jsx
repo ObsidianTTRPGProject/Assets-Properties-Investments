@@ -54,7 +54,7 @@ export default function FinancesTab({ propertyId }) {
 
   return (
     <div>
-      <div className="mb-4 grid grid-cols-3 gap-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Stat label="Income" value={money(income)} color="text-green-600" />
         <Stat label="Expenses" value={money(expense)} color="text-red-600" />
         <Stat label="Net" value={money(income - expense)} color={income - expense >= 0 ? 'text-green-600' : 'text-red-600'} />
@@ -106,8 +106,8 @@ export default function FinancesTab({ propertyId }) {
       {sorted.length === 0 ? (
         <p className="text-slate-400">No financial activity yet.</p>
       ) : (
-        <Card className="overflow-hidden">
-          <table className="w-full text-sm">
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-slate-50 text-left text-slate-500"><tr><th className="px-4 py-2">Date</th><th className="px-4 py-2">Description</th><th className="px-4 py-2">Source</th><th className="px-4 py-2 text-right">Amount</th><th className="px-4 py-2"></th></tr></thead>
             <tbody>
               {sorted.map((e, i) => (

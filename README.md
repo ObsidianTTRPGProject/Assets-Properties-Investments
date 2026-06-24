@@ -78,6 +78,10 @@ run the migration once in the Supabase SQL Editor:
 5. SQL Editor → paste [`supabase/migration-05-profile-fields.sql`](supabase/migration-05-profile-fields.sql) → Run (profile contact number + self-service profile editing).
 6. SQL Editor → paste [`supabase/migration-06-notifications.sql`](supabase/migration-06-notifications.sql) → Run (notification read-state).
 7. SQL Editor → paste [`supabase/migration-07-pool.sql`](supabase/migration-07-pool.sql) → Run (shared contributions pool).
+8. SQL Editor → paste [`supabase/migration-08-pool-schedules.sql`](supabase/migration-08-pool-schedules.sql) → Run (recurring pool contributions).
+9. SQL Editor → paste [`supabase/migration-09-depreciation.sql`](supabase/migration-09-depreciation.sql) → Run (depreciation assets).
+
+> A new package (`xlsx`, for Excel export) was added — if running locally, `npm install` again first.
 
 **For password reset:** in Supabase → Authentication → URL Configuration, set the **Site URL** to your live site, and add it under **Redirect URLs** too, e.g. `https://obsidianttrpgproject.github.io/Acquisition-Performance-Income/`. Without this, the reset email link won't return to the app correctly.
 

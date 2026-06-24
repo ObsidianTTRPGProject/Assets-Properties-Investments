@@ -203,10 +203,38 @@ create table if not exists pool_expenses (
   note         text,
   created_at   timestamptz default now()
 );
+create table if not exists pool_schedules (
+  id           uuid primary key default gen_random_uuid(),
+  member_id    uuid references profiles(id) on delete set null,
+  member_name  text,
+  amount       numeric(12,2) not null,
+  frequency    text default 'weekly',
+  start_date   date not null,
+  end_date     date,
+  note         text,
+  created_at   timestamptz default now()
+);
+create table if not exists depreciation_items (
+  id              uuid primary key default gen_random_uuid(),
+  property_id     uuid references properties(id) on delete cascade,
+  description     text not null,
+  asset_type      text,
+  cost            numeric(14,2) not null,
+  method          text default 'prime',
+  rate            numeric(6,3) not null,
+  effective_life  numeric(6,2),
+  start_date      date not null,
+  note            text,
+  created_at      timestamptz default now()
+);
 alter table pool_contributions enable row level security;
 alter table pool_expenses enable row level security;
+alter table pool_schedules enable row level security;
+alter table depreciation_items enable row level security;
 create policy pool_contributions_auth on pool_contributions for all to authenticated using (true) with check (true);
 create policy pool_expenses_auth on pool_expenses for all to authenticated using (true) with check (true);
+create policy pool_schedules_auth on pool_schedules for all to authenticated using (true) with check (true);
+create policy depreciation_items_auth on depreciation_items for all to authenticated using (true) with check (true);
 
 -- ---------- CASH FLOW ---------------------------------------------------------
 -- Manual one-off entries (purchase, sale, misc income). Bills and rent payments

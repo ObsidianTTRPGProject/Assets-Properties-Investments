@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { Badge, statusColor } from '../components/ui'
 import { money, dateStr } from '../lib/format'
@@ -17,8 +17,11 @@ const TABS = ['Overview', 'Photos', 'Tasks', 'Bills', 'Tenants', 'Requests', 'Fi
 
 export default function PropertyDetail() {
   const { id } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('tab')
+  const tab = TABS.includes(requested) ? requested : 'Overview'
+  const setTab = (t) => setSearchParams(t === 'Overview' ? {} : { tab: t })
   const [property, setProperty] = useState(null)
-  const [tab, setTab] = useState('Overview')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

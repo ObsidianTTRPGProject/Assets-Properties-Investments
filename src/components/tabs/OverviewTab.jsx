@@ -5,6 +5,7 @@ import { money, dateStr } from '../../lib/format'
 import { uploadFile, signedUrl } from '../../lib/storage'
 import AddressAutocomplete from '../AddressAutocomplete'
 import PropertyMap from '../PropertyMap'
+import ActivityPanels from '../ActivityPanels'
 
 export default function OverviewTab({ property, onChange }) {
   const [editing, setEditing] = useState(false)
@@ -186,6 +187,11 @@ export default function OverviewTab({ property, onChange }) {
         </div>
       )}
     </Card>
+    </div>
+
+    <div>
+      <h2 className="mb-3 mt-2 text-sm font-semibold uppercase tracking-wide text-slate-400">This property — activity</h2>
+      <ActivityPanels propertyId={property.id} compact />
     </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { uploadFile, signedUrl, deleteFile } from '../../lib/storage'
+import { extractBillFromPDF } from '../../lib/pdfImport'
 import { Card, Button, Field, Input, Select } from '../ui'
 import { money, dateStr } from '../../lib/format'
 
@@ -16,10 +17,12 @@ export default function BillsTab({ propertyId }) {
   const [form, setForm] = useState(blank())
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importNote, setImportNote] = useState('')
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
   function blank() {
-    return { description: '', category: 'rates', amount: '', issue_date: '', due_date: '', status: 'unpaid', contact_id: '' }
+    return { description: '', reference: '', category: 'rates', amount: '', issue_date: '', due_date: '', status: 'unpaid', contact_id: '' }
   }
 
   useEffect(() => { load() }, [propertyId])
@@ -31,13 +34,37 @@ export default function BillsTab({ propertyId }) {
     setContacts(c || [])
   }
 
-  function startAdd() { setForm(blank()); setFile(null); setEditingId(null); setShowForm(true) }
+  function startAdd() { setForm(blank()); setFile(null); setEditingId(null); setImportNote(''); setShowForm(true) }
   function startEdit(b) {
     setForm({
-      description: b.description || '', category: b.category || 'other', amount: b.amount ?? '',
+      description: b.description || '', reference: b.reference || '', category: b.category || 'other', amount: b.amount ?? '',
       issue_date: b.issue_date || '', due_date: b.due_date || '', status: b.status || 'unpaid', contact_id: b.contact_id || '',
     })
-    setFile(null); setEditingId(b.id); setShowForm(true)
+    setFile(null); setEditingId(b.id); setImportNote(''); setShowForm(true)
+  }
+
+  async function importPDF(e) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setImporting(true); setImportNote('')
+    try {
+      const { fields } = await extractBillFromPDF(f)
+      setForm((cur) => ({
+        ...cur,
+        description: fields.description || cur.description,
+        amount: fields.amount != null ? String(fields.amount) : cur.amount,
+        reference: fields.reference || cur.reference,
+        due_date: fields.due_date || cur.due_date,
+        issue_date: fields.issue_date || cur.issue_date,
+        category: fields.category || cur.category,
+      }))
+      setFile(f) // keep the original PDF as the attachment
+      setImportNote('Imported from PDF — please check the fields, then Save.')
+    } catch (err) {
+      setImportNote('Could not read that PDF: ' + err.message)
+    }
+    setImporting(false)
+    e.target.value = ''
   }
 
   async function save() {
@@ -93,22 +120,31 @@ export default function BillsTab({ propertyId }) {
 
       {showForm && (
         <Card className="mb-5 space-y-3 p-4">
-          <h3 className="text-sm font-medium">{editingId ? 'Edit bill' : 'New bill'}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">{editingId ? 'Edit bill' : 'New bill'}</h3>
+            <label className="cursor-pointer rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
+              {importing ? 'Reading PDF…' : '⬆ Import from PDF'}
+              <input type="file" accept="application/pdf" className="hidden" onChange={importPDF} disabled={importing} />
+            </label>
+          </div>
+          {importNote && <p className="text-xs text-brand-700">{importNote}</p>}
           <Field label="Description *"><Input value={form.description} onChange={set('description')} /></Field>
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Reference / account no."><Input value={form.reference} onChange={set('reference')} /></Field>
             <Field label="Amount (AUD) *"><Input type="number" value={form.amount} onChange={set('amount')} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <Field label="Category"><Select value={form.category} onChange={set('category')}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+            <Field label="Status"><Select value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Issue date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
             <Field label="Due date"><Input type="date" value={form.due_date} onChange={set('due_date')} /></Field>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Status"><Select value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
-            <Field label="Vendor"><Select value={form.contact_id} onChange={set('contact_id')}><option value="">— none —</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
-          </div>
+          <Field label="Vendor"><Select value={form.contact_id} onChange={set('contact_id')}><option value="">— none —</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
           <Field label={editingId ? 'Replace invoice document (optional)' : 'Invoice document (optional)'}>
             <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-sm" />
+            {file && <p className="mt-1 text-xs text-slate-400">Attached: {file.name}</p>}
           </Field>
           <div className="flex gap-2">
             <Button onClick={save} disabled={busy}>{busy ? 'Saving…' : editingId ? 'Save changes' : 'Add bill'}</Button>
@@ -121,7 +157,7 @@ export default function BillsTab({ propertyId }) {
         <p className="text-slate-400">No bills yet.</p>
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-slate-50 text-left text-slate-500">
               <tr>
                 <th className="px-4 py-2">Description</th>
@@ -135,7 +171,10 @@ export default function BillsTab({ propertyId }) {
             <tbody>
               {bills.map((b) => (
                 <tr key={b.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 font-medium">{b.description}</td>
+                  <td className="px-4 py-2">
+                    <div className="font-medium">{b.description}</div>
+                    {b.reference && <div className="text-xs text-slate-400">Ref: {b.reference}</div>}
+                  </td>
                   <td className="px-4 py-2 text-slate-500">{b.category}</td>
                   <td className="px-4 py-2 text-slate-500">{dateStr(b.due_date)}</td>
                   <td className="px-4 py-2 text-right font-medium">{money(b.amount)}</td>

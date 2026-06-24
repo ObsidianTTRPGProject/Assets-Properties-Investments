@@ -91,6 +91,7 @@ create table if not exists bills (
   property_id   uuid references properties(id) on delete cascade,
   contact_id    uuid references contacts(id) on delete set null,
   description   text not null,
+  reference     text,                             -- biller reference / account number
   category      text,                             -- rates, insurance, utilities, build, repairs, mgmt, interest...
   amount        numeric(14,2) not null,
   issue_date    date,
@@ -163,6 +164,32 @@ create table if not exists requests (
   task_id      uuid references tasks(id) on delete set null,  -- optional promotion to a work task
   created_at   timestamptz default now()
 );
+
+-- ---------- VOTING (decisions per property) -----------------------------------
+create table if not exists votes (
+  id           uuid primary key default gen_random_uuid(),
+  property_id  uuid references properties(id) on delete cascade,
+  title        text not null,
+  description  text,
+  status       text default 'open',
+  result       text,
+  created_by   uuid references profiles(id) on delete set null,
+  created_at   timestamptz default now()
+);
+create table if not exists vote_ballots (
+  id           uuid primary key default gen_random_uuid(),
+  vote_id      uuid references votes(id) on delete cascade,
+  member_id    uuid references profiles(id) on delete set null,
+  member_name  text,
+  choice       text not null,
+  comment      text,
+  created_at   timestamptz default now(),
+  unique (vote_id, member_id)
+);
+alter table votes enable row level security;
+alter table vote_ballots enable row level security;
+create policy votes_auth on votes for all to authenticated using (true) with check (true);
+create policy vote_ballots_auth on vote_ballots for all to authenticated using (true) with check (true);
 
 -- ---------- NOTIFICATION READ-STATE -------------------------------------------
 create table if not exists notification_reads (

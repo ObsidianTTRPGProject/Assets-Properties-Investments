@@ -11,8 +11,9 @@ import TenantsTab from '../components/tabs/TenantsTab'
 import RequestsTab from '../components/tabs/RequestsTab'
 import FinancesTab from '../components/tabs/FinancesTab'
 import DepreciationTab from '../components/tabs/DepreciationTab'
+import VotingTab from '../components/tabs/VotingTab'
 
-const TABS = ['Overview', 'Photos', 'Tasks', 'Bills', 'Tenants', 'Requests', 'Finances', 'Depreciation']
+const TABS = ['Overview', 'Photos', 'Tasks', 'Bills', 'Tenants', 'Requests', 'Finances', 'Depreciation', 'Voting']
 
 export default function PropertyDetail() {
   const { id } = useParams()
@@ -67,6 +68,7 @@ export default function PropertyDetail() {
       {tab === 'Requests' && <RequestsTab propertyId={id} />}
       {tab === 'Finances' && <FinancesTab propertyId={id} />}
       {tab === 'Depreciation' && <DepreciationTab propertyId={id} />}
+      {tab === 'Voting' && <VotingTab propertyId={id} />}
     </div>
   )
 }

@@ -91,7 +91,8 @@ create table if not exists bills (
   property_id   uuid references properties(id) on delete cascade,
   contact_id    uuid references contacts(id) on delete set null,
   description   text not null,
-  reference     text,                             -- biller reference / account number
+  reference     text,                             -- customer / account reference
+  invoice_number text,                            -- biller invoice number
   category      text,                             -- rates, insurance, utilities, build, repairs, mgmt, interest...
   amount        numeric(14,2) not null,
   issue_date    date,

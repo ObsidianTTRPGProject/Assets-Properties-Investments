@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { uploadFile, signedUrl, deleteFile } from '../../lib/storage'
 import { extractBillFromPDF } from '../../lib/pdfImport'
+import { extractBillFromImage } from '../../lib/ocrImport'
 import { Card, Button, Field, Input, Select } from '../ui'
 import { money, dateStr } from '../../lib/format'
 
@@ -22,10 +23,26 @@ export default function BillsTab({ propertyId }) {
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
   function blank() {
-    return { description: '', reference: '', category: 'rates', amount: '', issue_date: '', due_date: '', status: 'unpaid', contact_id: '' }
+    return { description: '', reference: '', invoice_number: '', category: 'rates', amount: '', issue_date: '', due_date: '', status: 'unpaid', contact_id: '' }
   }
 
   useEffect(() => { load() }, [propertyId])
+
+  // While the form is open, let the user paste a screenshot/photo of a bill.
+  useEffect(() => {
+    if (!showForm) return
+    const onPaste = (e) => {
+      const items = e.clipboardData?.items || []
+      for (const it of items) {
+        if (it.type && it.type.startsWith('image/')) {
+          const blob = it.getAsFile()
+          if (blob) { e.preventDefault(); importFile(blob); break }
+        }
+      }
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [showForm])
 
   async function load() {
     const { data } = await supabase.from('bills').select('*').eq('property_id', propertyId).order('due_date', { ascending: false })
@@ -36,34 +53,41 @@ export default function BillsTab({ propertyId }) {
 
   function startAdd() { setForm(blank()); setFile(null); setEditingId(null); setImportNote(''); setShowForm(true) }
   function startEdit(b) {
-    setForm({
-      description: b.description || '', reference: b.reference || '', category: b.category || 'other', amount: b.amount ?? '',
-      issue_date: b.issue_date || '', due_date: b.due_date || '', status: b.status || 'unpaid', contact_id: b.contact_id || '',
-    })
+    setForm({ description: b.description || '', reference: b.reference || '', invoice_number: b.invoice_number || '', category: b.category || 'other', amount: b.amount ?? '', issue_date: b.issue_date || '', due_date: b.due_date || '', status: b.status || 'unpaid', contact_id: b.contact_id || '' })
     setFile(null); setEditingId(b.id); setImportNote(''); setShowForm(true)
   }
 
-  async function importPDF(e) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    setImporting(true); setImportNote('')
+  async function importFile(raw) {
+    let f = raw
+    if (!f.name) f = new File([raw], 'pasted-bill.png', { type: raw.type || 'image/png' })
+    const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name)
+    setImporting(true)
+    setImportNote(isPdf ? 'Reading PDF…' : 'Reading image (OCR)… this can take a few seconds')
     try {
-      const { fields } = await extractBillFromPDF(f)
+      const { fields } = isPdf
+        ? await extractBillFromPDF(f)
+        : await extractBillFromImage(f, (p) => setImportNote(`Reading image (OCR)… ${Math.round(p * 100)}%`))
       setForm((cur) => ({
         ...cur,
         description: fields.description || cur.description,
         amount: fields.amount != null ? String(fields.amount) : cur.amount,
         reference: fields.reference || cur.reference,
+        invoice_number: fields.invoice_number || cur.invoice_number,
         due_date: fields.due_date || cur.due_date,
         issue_date: fields.issue_date || cur.issue_date,
         category: fields.category || cur.category,
       }))
-      setFile(f) // keep the original PDF as the attachment
-      setImportNote('Imported from PDF — please check the fields, then Save.')
+      setFile(f)
+      setImportNote('Imported — please check the fields, then Save.')
     } catch (err) {
-      setImportNote('Could not read that PDF: ' + err.message)
+      setImportNote('Could not read that file: ' + err.message)
     }
     setImporting(false)
+  }
+
+  function onImportInput(e) {
+    const f = e.target.files?.[0]
+    if (f) importFile(f)
     e.target.value = ''
   }
 
@@ -122,26 +146,30 @@ export default function BillsTab({ propertyId }) {
         <Card className="mb-5 space-y-3 p-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium">{editingId ? 'Edit bill' : 'New bill'}</h3>
-            <label className="cursor-pointer rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
-              {importing ? 'Reading PDF…' : '⬆ Import from PDF'}
-              <input type="file" accept="application/pdf" className="hidden" onChange={importPDF} disabled={importing} />
+            <label className="cursor-pointer rounded-lg border border-brand-100 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100">
+              {importing ? 'Reading…' : 'Import from PDF / image'}
+              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={onImportInput} disabled={importing} />
             </label>
           </div>
+          <p className="text-xs text-slate-400">Tip: you can also paste a screenshot or photo of a bill (Ctrl+V) while this form is open.</p>
           {importNote && <p className="text-xs text-brand-700">{importNote}</p>}
           <Field label="Description *"><Input value={form.description} onChange={set('description')} /></Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Reference / account no."><Input value={form.reference} onChange={set('reference')} /></Field>
-            <Field label="Amount (AUD) *"><Input type="number" value={form.amount} onChange={set('amount')} /></Field>
+            <Field label="Customer / account reference"><Input value={form.reference} onChange={set('reference')} /></Field>
+            <Field label="Invoice number"><Input value={form.invoice_number} onChange={set('invoice_number')} /></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Amount (AUD) *"><Input type="number" value={form.amount} onChange={set('amount')} /></Field>
             <Field label="Category"><Select value={form.category} onChange={set('category')}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-            <Field label="Status"><Select value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Issue date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
             <Field label="Due date"><Input type="date" value={form.due_date} onChange={set('due_date')} /></Field>
           </div>
-          <Field label="Vendor"><Select value={form.contact_id} onChange={set('contact_id')}><option value="">— none —</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Status"><Select value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</Select></Field>
+            <Field label="Vendor"><Select value={form.contact_id} onChange={set('contact_id')}><option value="">— none —</option>{contacts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select></Field>
+          </div>
           <Field label={editingId ? 'Replace invoice document (optional)' : 'Invoice document (optional)'}>
             <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="text-sm" />
             {file && <p className="mt-1 text-xs text-slate-400">Attached: {file.name}</p>}
@@ -173,7 +201,11 @@ export default function BillsTab({ propertyId }) {
                 <tr key={b.id} className="border-t border-slate-100">
                   <td className="px-4 py-2">
                     <div className="font-medium">{b.description}</div>
-                    {b.reference && <div className="text-xs text-slate-400">Ref: {b.reference}</div>}
+                    {(b.reference || b.invoice_number) && (
+                      <div className="text-xs text-slate-400">
+                        {b.reference ? `Ref: ${b.reference}` : ''}{b.reference && b.invoice_number ? ' · ' : ''}{b.invoice_number ? `Inv: ${b.invoice_number}` : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-slate-500">{b.category}</td>
                   <td className="px-4 py-2 text-slate-500">{dateStr(b.due_date)}</td>

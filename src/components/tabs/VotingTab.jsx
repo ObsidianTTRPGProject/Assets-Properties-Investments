@@ -35,7 +35,12 @@ export default function VotingTab({ propertyId }) {
 
   async function addVote() {
     if (!form.title.trim()) return
-    await supabase.from('votes').insert({ property_id: propertyId, title: form.title, description: form.description, created_by: userId || null })
+    const { error } = await supabase.from('votes').insert({ property_id: propertyId, title: form.title, description: form.description, created_by: userId || null })
+    if (error) {
+      const missing = /votes/i.test(error.message) && /(does not exist|schema cache|find the table)/i.test(error.message)
+      alert('Could not raise vote: ' + error.message + (missing ? '\n\nThe voting tables aren\'t set up yet — run supabase/migration-11-voting.sql in the Supabase SQL Editor.' : ''))
+      return
+    }
     setForm({ title: '', description: '' }); setAdding(false); load()
   }
 
@@ -46,10 +51,11 @@ export default function VotingTab({ propertyId }) {
 
   async function castBallot(vote, choice) {
     if (!userId) return
-    await supabase.from('vote_ballots').upsert(
+    const { error } = await supabase.from('vote_ballots').upsert(
       { vote_id: vote.id, member_id: userId, member_name: myName, choice },
       { onConflict: 'vote_id,member_id' }
     )
+    if (error) { alert('Could not record your vote: ' + error.message); return }
     load()
   }
 

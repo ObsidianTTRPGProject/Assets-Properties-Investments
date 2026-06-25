@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
+import CompanySwitcher from './CompanySwitcher'
 import { APP_VERSION } from '../lib/version'
 
 const BASE_NAV = [
@@ -53,6 +54,7 @@ export default function Layout({ children }) {
             {NAV.map(([to, label, end]) => (
               <NavLink key={to} to={to} end={end} className={linkClass}>{label}</NavLink>
             ))}
+            {session && <CompanySwitcher />}
             {session && <NotificationBell />}
             {session && (
               <button onClick={logout} className="ml-1 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100">
@@ -74,6 +76,7 @@ export default function Layout({ children }) {
         {/* Mobile menu */}
         {menuOpen && (
           <nav className="flex flex-col gap-1 border-t border-slate-100 px-4 py-2 md:hidden">
+            {session && <div className="py-1"><CompanySwitcher /></div>}
             {NAV.map(([to, label, end]) => (
               <NavLink key={to} to={to} end={end} className={linkClass} onClick={() => setMenuOpen(false)}>{label}</NavLink>
             ))}

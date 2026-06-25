@@ -7,9 +7,21 @@
 //   major (x.0.0) = big or breaking changes
 // The version shows in the footer and links to the Changelog page.
 
-export const APP_VERSION = '1.0.0'
+export const APP_VERSION = '1.1.0'
 
 export const CHANGELOG = [
+  {
+    version: '1.1.0',
+    date: '2026-06-25',
+    title: 'Multi-company support',
+    changes: [
+      'The portal now supports multiple companies, each with its own fully isolated data — users only ever see their own company.',
+      'New roles: super-admin (manages all companies) and company-admin (manages their own company).',
+      'Admin panel to create companies, add users (email invite or starting password), reset passwords, and assign roles.',
+      'Super-admin company switcher in the header to view and assist any company, defaulting to your primary one.',
+      'Dashboard now deep-links each alert to the exact tab, with a per-property activity panel, and the company banner on the Dashboard.',
+    ],
+  },
   {
     version: '1.0.0',
     date: '2026-06-25',

@@ -13,6 +13,7 @@ import MapView from './pages/MapView'
 import Pool from './pages/Pool'
 import Profile from './pages/Profile'
 import Changelog from './pages/Changelog'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/pool" element={<Pool />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/changelog" element={<Changelog />} />
+                <Route path="/admin" element={<Admin />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
 import { APP_VERSION } from '../lib/version'
 
-const NAV = [
+const BASE_NAV = [
   ['/', 'Dashboard', true],
   ['/properties', 'Properties', false],
   ['/map', 'Map', false],
@@ -16,7 +16,8 @@ const NAV = [
 ]
 
 export default function Layout({ children }) {
-  const { session } = useAuth()
+  const { session, isCompanyAdmin } = useAuth()
+  const NAV = isCompanyAdmin ? [...BASE_NAV, ['/admin', 'Admin', false]] : BASE_NAV
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 

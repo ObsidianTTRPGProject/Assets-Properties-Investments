@@ -4,7 +4,7 @@
 // name it "notify" → paste this code → Deploy), then set the secrets:
 //   SENDGRID_API_KEY  = your SendGrid API key
 //   FROM_EMAIL        = the address you verified as a Single Sender
-//   APP_URL           = https://obsidianttrpgproject.github.io/Acquisition-Performance-Income/
+//   APP_URL           = https://obsidianttrpgproject.github.io/Assets-Properties-Investments/
 // (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
